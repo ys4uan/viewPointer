@@ -1,0 +1,418 @@
+<!-- 资讯管理 -->
+<div>
+    <div class="info-manage">
+        <div class="info-header">
+            <div class="select-list">
+                <select name="" id="">
+                    <!-- <option value="">1</option> -->
+                </select>
+            </div>
+            <div class="btns">
+                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal">新增</button>
+                <button type="button" class="btn btn-danger">批量删除</button>
+            </div>
+        </div>
+        <div class="info-body">
+            <table class="table table-bordered text-center">
+                <thead>
+                    <tr>
+                        <th class="text-center">编号</th>
+                        <th class="text-center">文章标题</th>
+                        <th class="text-center">所属栏目</th>
+                        <th class="text-center">排列方式</th>
+                        <th class="text-center">作者</th>
+                        <th class="text-center">发布时间</th>
+                        <th class="text-center">阅读次数</th>
+                        <th class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- <tr>
+                        <td><input type="checkbox"/></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>
+                            <i title="修改" class="fa fa-pencil-square-o text-success fa-lg" aria-hidden="true"></i>
+                            <i title="删除" class="fa fa-trash-o text-danger fa-lg" aria-hidden="true"></i>
+                        </td>
+                    </tr> -->
+                </tbody>
+            </table>
+        </div>
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">发布资讯</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="headerTitle">标题</label>
+                        <input type="text" class="form-control" id="headerTitle"/>
+                    </div>
+                    <div class="form-group">
+                        <label for="beCategory">所属栏目</label>
+                        <select name="" id="beCategory" class="form-control">
+
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">列表样式</label>
+                        <div class="form-group">
+                            <label class="radio-inline">
+                                <input type="radio" name="inlineRadioOptions" id="inlineRadio1" value="style-one"/>
+                                <img src="./images/style-one.jpg" width="240px" height="100px" alt="style-one">
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="inlineRadioOptions" id="inlineRadio2" value="style-two"/>
+                                <img src="./images/style-two.jpg" width="240px" height="100px" alt="style-two">
+                             </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="comments">正文</label>
+                        <textarea id="comments" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary btn-submit">发布</button>
+                </div>
+                </div>
+            </div>
+        </div>
+        <nav aria-label="Page navigation" class="nav-position">
+            <ul class="pagination pagination-lg">
+                <li>
+                <a href="#" class="last" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+                </li>
+                <li class="active"><a class="paging" href="#" data-value="1">1</a></li>
+                <li><a class="paging" href="#" data-value="2">2</a></li>
+                <li><a class="paging" href="#" data-value="3">3</a></li>
+                <li><a class="paging" href="#" data-value="4">4</a></li>
+                <li><a class="paging" href="#" data-value="5">5</a></li>
+                <li>
+                <a href="#" class="next" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    <script>
+        var GLOBAL_CATEGORYID;
+        var GLOBAL_ARITICLEID = -1;
+
+        // 给select添加option
+        // 获取所有的栏目，并且为每一个option绑定一个id值
+        getAjax('/manager/category/findAllCategory','GET',null,function(res){
+            var optionStr = '';
+            var firstId = $(res.data[0]).attr('id');
+            $(res.data).each(function(index,item){
+                optionStr += `<option id="`+ item.id +`">`+ item.name +`</option>`;
+            });
+            $('.select-list select').html(optionStr);
+            $('#beCategory').html(optionStr);
+            // 初始化GLOBAL_CATEGORYID
+            GLOBAL_CATEGORYID = parseInt($('.select-list option:first').attr('id'));
+            // 封装第一次查询数据的对象
+            var dataObj = {
+                page: 0,
+                pageSize: 11,
+                categoryId: firstId
+            };
+            findArticle(dataObj);
+        },function(error){
+            console.log(error);
+        });
+        // 监听select是否变换
+        $('.select-list select').change(function(){
+            var result = parseInt($('.select-list option:selected').attr('id'));
+            var dataObj = {
+                page: 0,
+                pageSize: 11,
+                categoryId: result
+            };
+            GLOBAL_CATEGORYID = result;
+            findArticle(dataObj);
+        });
+        // 初始化模态框
+        $('.btns button:first-child').click(function(){
+            if($('.modal-header h4').text() === '修改资讯'){
+                $('.modal-header h4').text('发布资讯')
+            }
+            // 初始化category哪里，将其初始值为当前页面的栏目
+            $('#beCategory option').each(function(index,item){
+                if(parseInt($(item).attr('id')) === GLOBAL_CATEGORYID){   
+                    $(item).prop('selected',true);
+                }
+            });
+        });
+        // 分页
+        $('.pagination').click(function(event){
+            var pageNum;
+            // 获取项目id
+            // var cateId = parseInt($('.info-body tbody td:nth-child(3)').attr('id'));
+            if($(event.target).is('.paging')){
+                $('.paging').each(function(index,item){
+                    $(item).parent().removeClass('active');
+                });
+                $(event.target).parent().addClass('active');
+                pageNum = parseInt($(event.target).attr('data-value'));
+            } 
+            // 点击上一步
+            if($(event.target).is('.last') || $(event.target).is('span')){
+                var curNum;
+                $('.paging').each(function(index,item){
+                    if($(item).parent().hasClass('active')){
+                        curNum = $(item).attr('data-value');
+                    }
+                    $(item).parent().removeClass('active');
+                });
+                if($('.paging:first').text() < curNum){
+                    $('.paging[data-value='+ (parseInt(curNum) - 1) +']').parent().addClass('active');
+                }else{
+                    $('.paging:first').parent().addClass('active');
+                }
+                pageNum = parseInt(curNum) - 1;
+            }
+            // 点击下一步
+            if($(event.target).is('.next') || $(event.target).is('span')){
+                var curNum;
+                $('.paging').each(function(index,item){
+                    if($(item).parent().hasClass('active')){
+                        curNum = $(item).attr('data-value');
+                    }
+                    $(item).parent().removeClass('active');
+                });
+                $('.paging[data-value='+ (parseInt(curNum) + 1) +']').parent().addClass('active');
+                pageNum = parseInt(curNum) + 1;
+            }  
+            changePaging(pageNum);
+        });
+        // 动态更迭分页列表
+        function changePaging(pageNum){
+            var num;
+            $('.paging').each(function(index,item){
+                if($(item).parent().hasClass('active')){
+                    num = parseInt($(item).attr('data-value'));
+                }
+            });
+            if(num >= 3){
+                var dataStr = `<li>
+                <a href="#" class="last" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+                </li>
+                <li><a class="paging" href="#" data-value="`+ (num-2) +`">`+ (num-2) +`</a></li>
+                <li><a class="paging" href="#" data-value="`+ (num-1) +`">`+ (num-1) +`</a></li>
+                <li class="active"><a class="paging" href="#" data-value="`+ num +`">`+ num +`</a></li>
+                <li><a class="paging" href="#" data-value="`+ (num+1) +`">`+ (num+1) +`</a></li>
+                <li><a class="paging" href="#" data-value="`+ (num+2) +`">`+ (num+2) +`</a></li>
+                <li>
+                <a href="#" class="next" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+                </li>`;
+                $('.pagination').html(dataStr);
+            }
+            var dataObj = {
+                page: (pageNum - 1),
+                pageSize: 11,
+                categoryId: GLOBAL_CATEGORYID,
+            };
+            findArticle(dataObj);
+        }
+
+        // 删除数据
+        $('.info-body tbody').click(function(event){
+            if($(event.target).is('i[title=删除]')){
+                var id = parseInt($(event.target).parents('tr').find('input[type=checkbox]').attr('id'));
+                var categoryID = parseInt($(event.target).parents('tr').find('td:nth-child(3)').attr('id'));
+                var dataObj = {
+                    id: id
+                };
+                var searchObj = {
+                    page: 0,
+                    pageSize: 11,
+                    categoryId: categoryID
+                };
+                deleteArticleById(dataObj,searchObj);
+            }
+        });
+        // 批量删除数据
+        $('.btns button:last-child').click(function(){
+            var resultId = $('.info-body tbody input[type=checkbox]:checked');
+            var idArr = [];
+            var categoryId = parseInt($('.info-body tbody td:nth-child(3)').attr('id'));
+            $(resultId).each(function(index,item){
+                idArr.push(parseInt($(item).attr('id')));
+            });   
+           var dataObj = {
+               ids: idArr.join()
+           };
+           var searchObj = {
+               page: 0,
+               pageSize: 11,
+               categoryId: categoryId
+           };
+           batchDeleteArticle(dataObj,searchObj);
+        });
+        // 插入数据
+        $('.btn-submit').click(function(){
+            // 获取其中的值
+            var title = $('#headerTitle').val();
+            var belongCate = parseInt($('#beCategory option:selected').attr('id'));
+            var listStyle = $('.radio-inline input:checked').val();
+            var comment = $('#comments').val();
+            if(GLOBAL_ARITICLEID > 0){
+                var dataObj = {
+                    id: GLOBAL_ARITICLEID,
+                    title: title,
+                    liststyle: listStyle,
+                    publishtime: getCurrentTime(),
+                    categoryId: belongCate,
+                    content: comment
+                };
+                GLOBAL_ARITICLEID = -1;
+            }else{
+                var dataObj = {
+                    title: title,
+                    liststyle: listStyle,
+                    publishtime: getCurrentTime(),
+                    categoryId: belongCate,
+                    content: comment
+                };
+            }    
+            saveOrUpdateArticle(dataObj);
+        });
+        // 修改数据
+        $('.info-body tbody').click(function(event){
+            if($(event.target).is('i[title=修改]')){
+                // 模态框的初始化
+                if($('.modal-header h4').text() === '发布资讯'){
+                    $('.modal-header h4').text('修改资讯')
+                }
+                $('#beCategory option').each(function(index,item){
+                    if(parseInt($(item).attr('id')) === GLOBAL_CATEGORYID){   
+                        $(item).prop('selected',true);
+                    }
+                });
+                var $trNode = $(event.target).parents('tr');
+                $('#headerTitle').val($trNode.find('td:nth-child(2)').text());
+                if($trNode.find('td:nth-child(4)').text() === 'style-one'){
+                    $('.radio-inline:first-child').find('input[type=radio]').prop('checked',true);
+                }else if($trNode.find('td:nth-child(4)').text() === 'style-two'){
+                    $('.radio-inline:last-child').find('input[type=radio]').prop('checked',true);
+                }
+                // 获取选中tr的comment
+                var categoryId = parseInt($trNode.find('td:nth-child(3)').attr('id'));
+                var articleId = parseInt($trNode.find('td:nth-child(1) input').attr('id'));
+                GLOBAL_ARITICLEID = articleId;
+                var obj = {
+                    page: 0,
+                    pageSize: 11,
+                    categoryId: categoryId
+                };
+                getAjax('/manager/article/findArticle','GET',obj,function(res){
+                    // 获取选中当前tr行的id，然后和res.data.list中所有项的id匹配
+                    // 然后获取匹配成功的项的commen
+                    // 然后赋值给模态框
+                    console.log(res.data.list);
+                    $(res.data.list).each(function(index,item){
+                        if(item.id === articleId){
+                            $('#comments').val(item.content);          
+                        }
+                    });
+                },function(error){
+                    console.log(error);
+                }); 
+            }
+        });
+
+        // 封装时间对象
+        function getCurrentTime(){
+            var time = new Date();
+            var year = time.getFullYear();
+            var mouth = (time.getMonth() + 1)>9?time.getMonth() + 1:'0'+(time.getMonth() + 1);
+            var day = time.getDate()>9?time.getDate():'0'+time.getDate();
+            var hour = time.getHours()>9?time.getHours():'0'+time.getHours();
+            var minute = time.getMinutes()>9?time.getMinutes():'0'+time.getMinutes();
+            var second = time.getSeconds()>9?time.getSeconds():'0'+time.getSeconds();
+            return year+'-'+mouth+'-'+day+' '+hour+':'+minute+':'+second;
+        }
+
+        // 封装findArticle函数查询数据
+        function findArticle(obj){
+            getAjax('/manager/article/findArticle','GET',obj,function(res){
+                console.log('查询数据成功');
+                var dataStr = '';
+                // 将所有查询的数据插入到tbody中
+                // console.log(res.data.list);
+                $(res.data.list).each(function(index,item){
+                    var cateAuthor = '-';
+                    if(item.author){
+                        cateAuthor = item.author;
+                    }
+                    dataStr += `<tr>
+                        <td><input id="`+ item.id +`" type="checkbox"/></td>
+                        <td>`+ item.title +`</td>
+                        <td id="`+ item.category.id +`">`+ item.category.name +`</td>
+                        <td>`+ item.liststyle +`</td>
+                        <td>`+ cateAuthor +`</td>
+                        <td>`+ item.publishtime +`</td>
+                        <td>`+ item.readtimes +`</td>
+                        <td>
+                            <i title="修改" class="fa fa-pencil-square-o text-success fa-lg" aria-hidden="true" data-toggle="modal" data-target="#myModal"></i>
+                            <i title="删除" class="fa fa-trash-o text-danger fa-lg" aria-hidden="true"></i>
+                        </td>
+                    </tr>`;
+                });
+                $('.info-body tbody').html(dataStr);
+            },function(error){
+                console.log('查询数据失败');
+            });
+        }
+        // 封装saveOrUpdateArticle函数新增或则修改数据
+        function saveOrUpdateArticle(obj){
+            var cateId = obj.categoryId;
+            var newDataObj = {
+                page: 0,
+                pageSize: 11,
+                categoryId: cateId
+            };
+            getAjax('/manager/article/saveOrUpdateArticle','POST',obj,function(res){
+                console.log('新增或则修改成功');
+                $('#myModal').modal('hide');
+                findArticle(newDataObj);
+            },function(error){
+                console.log('新增或则修改失败');
+            });
+        }
+        // 封装deleteArticleById函数通过id删除数据
+        function deleteArticleById(obj1,obj2){
+            getAjax('/manager/article/deleteArticleById','GET',obj1,function(){
+                console.log('数据删除成功');
+                findArticle(obj2)
+            },function(error){
+                console.log('数据删除失败');
+            });
+        }
+        // 封装batchDeleteArticle函数批量删除数据
+        function batchDeleteArticle(obj1,obj2){
+            getAjax('/manager/article/batchDeleteArticle','POST',obj1,function(){
+                console.log('数据批量删除成功');
+                findArticle(obj2);
+            },function(error){
+                console.log('数据批量删除失败');
+            });
+        }
+    </script>
+</div>

@@ -1,0 +1,174 @@
+<!-- 用户管理 -->
+<div>
+    <div class="user-manage">
+        <div class="btns">
+            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal">新增</button>
+        </div>
+        <div class="user-body">
+            <div class="row">
+                <!-- <div class="show-user col-md-4">
+                    <div class="show-content">
+                        <img src="" alt="">
+                        <div class="info-title">用户名</div>
+                        <div class="info-content">666666</div>
+                        <div class="info-title">真是姓名</div>
+                        <div class="info-content">666</div>
+                        <div class="info-title">注册时间</div>
+                        <div class="info-content">-</div>
+                        <div class="info-title">email</div>
+                        <div class="info-content">666</div>
+                        <div class="info-title">状态</div>
+                        <div class="info-content"> <input style="margin-right: 5px;" name="status" type="checkbox"  checked></div>
+                    </div>
+                </div>
+            </div>-->
+ 
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">添加用户</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" class="form-control" name="" id="username" />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="text" class="form-control" id="password" />
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPwd">确认密码</label>
+                        <input type="text" class="form-control" id="confirmPwd" />
+                    </div>
+                    <div class="form-group">
+                        <label for="name">真实姓名</label>
+                        <input type="text" class="form-control" id="name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="email">邮箱</label>
+                        <input type="text" class="form-control" id="email" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary save">Save</button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 新增数据
+        findAllUser();
+        // 保存数据
+        $('.save').click(function(){
+            var nickname = $('#username').val();
+            var password = $('#password').val();
+            var confirmPwd = $('#confirmPwd').val();
+            var name = $('#name').val();
+            var email = $('#email').val();
+            var dataObj = {
+                username: nickname,
+                password: password,
+                nickname: name,
+                email: email,
+                regTime: getCurrentTime()
+            };
+            saveOrUpdateUser(dataObj);
+        });
+
+        // 封装时间对象
+        function getCurrentTime(){
+            var time = new Date();
+            var year = time.getFullYear();
+            var mouth = (time.getMonth() + 1)>9?time.getMonth() + 1:'0'+(time.getMonth() + 1);
+            var day = time.getDate()>9?time.getDate():'0'+time.getDate();
+            var hour = time.getHours()>9?time.getHours():'0'+time.getHours();
+            var minute = time.getMinutes()>9?time.getMinutes():'0'+time.getMinutes();
+            var second = time.getSeconds()>9?time.getSeconds():'0'+time.getSeconds();
+            return year+'-'+mouth+'-'+day+' '+hour+':'+minute+':'+second;
+        }
+        // 封装changeStatus函数
+        function changeStatus(obj){
+            getAjax('/manager/user/changeStatus','POST',obj,function(res){
+                console.log('改变状态成功');
+                findAllUser();
+            },function(error){
+                console.log('改变状态失败');
+            });
+        }
+        // 封装findAllUser函数
+        function findAllUser(){
+            getAjax('/manager/user/findAllUser','GET',null,function(res){
+                console.log('查询所有用户成功');
+                var dataStr = '';
+                var stateArr = [];
+                $(res.data).each(function(index,item){
+                    dataStr += `<div class="show-user col-md-4">
+                    <div class="show-content">
+                        <img src="" alt="">
+                        <div class="info-title">用户名</div>
+                        <div class="info-content">`+ item.nickname +`</div>
+                        <div class="info-title">真实姓名</div>
+                        <div class="info-content">`+ item.username +`</div>
+                        <div class="info-title">注册时间</div>
+                        <div class="info-content">`+ item.regTime +`</div>
+                        <div class="info-title">email</div>
+                        <div class="info-content">`+ item.email +`</div>
+                        <div class="info-title">状态</div>
+                        <div class="info-content" id="`+ item.id +`"><input style="margin-right: 5px;" name="status" type="checkbox"  checked></div>
+                    </div>
+                </div>`;
+                    stateArr.push(item.enabled);
+                }); 
+                $('.user-body .row').html(dataStr); 
+                // 定义开关属性
+                $('[name="status"]').each(function(index,item){
+                    $(item).bootstrapSwitch({
+                        onText:"ON",
+                        offText:"OFF",
+                        onColor:"success",
+                        offColor:"info",
+                        size:"large",
+                        state: stateArr[index],
+                        handleWidth:"30",
+                        onSwitchChange:function(event,state){
+                            if(state==true){
+                                var userId = parseInt($(event.target).parents('.info-content').attr('id'));
+                                var dataObj = {
+                                    id: userId,
+                                    status: true
+                                };
+                                changeStatus(dataObj)
+                            }else{
+                                var userId = parseInt($(event.target).parents('.info-content').attr('id'));
+                                var dataObj = {
+                                    id: userId,
+                                    status: false
+                                };
+                                changeStatus(dataObj)
+                            }
+                        }
+                    });
+                });       
+            },function(error){
+                console.log('查询所有用户失败');
+            });
+        }
+        // 封装saveOrUpdateUser函数
+        function saveOrUpdateUser(obj){
+            getAjax('/manager/user/saveOrUpdateUser','POST',obj,function(res){
+                console.log('数据保存成功');
+                $('#myModal').modal(hide);
+                findAllUser();
+            },function(error){
+                console.log('数据保存失败');
+            });
+        }
+    </script>
+</div>
